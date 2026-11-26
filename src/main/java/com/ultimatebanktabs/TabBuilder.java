@@ -883,6 +883,28 @@ class TabBuilder
 		String title = "ontask".equals(key) ? "Task" : task.name;
 		out.add(new Section(key + "_main", title + " setup", "equipment", claim(block, ctx)));
 		out.add(new Section(key + "_alts", title + " alternatives", "alts", claim(alts, ctx)));
+		// the wiki's inventory for this style, in slot order: what the player owns of it
+		List<TabData.TaskItem> inventory = task.inventories.containsKey(style) ? task.inventories.get(style)
+			: task.inventories.getOrDefault("any", Collections.emptyList());
+		if (!inventory.isEmpty())
+		{
+			List<Placement> carried = new ArrayList<>();
+			for (TabData.TaskItem item : inventory)
+			{
+				if ("food".equals(item.kind))
+				{
+					// the wiki's "cheap food": the best food the style's supplies hold
+					c.built.getSections().stream().filter(sec -> "supplies_food".equals(sec.getKey()))
+						.flatMap(sec -> sec.getItems().stream()).findFirst().ifPresent(carried::add);
+					continue;
+				}
+				for (int id : firstOwned(item.entries, ctx, 1))
+				{
+					carried.add(new Placement(id, null, "task_inventory", item.reason));
+				}
+			}
+			out.add(new Section(key + "_inventory", title + " inventory", "rows", claim(carried, ctx)));
+		}
 		List<Placement> tools = new ArrayList<>();
 		for (boolean required : new boolean[]{true, false})
 		{

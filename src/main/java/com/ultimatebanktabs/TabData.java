@@ -71,6 +71,11 @@ class TabData
 		 * ranked the way the wiki ranks them (equal options share a rank, in the wiki's order)
 		 */
 		Map<String, List<TaskItem>> setups = Collections.emptyMap();
+		/**
+		 * the wiki's inventory, per style ("any" when the page doesn't say): one item per entry in slot order;
+		 * a "food" one (the wiki's cheap food) is the style's best food
+		 */
+		Map<String, List<TaskItem>> inventories = Collections.emptyMap();
 		/** recommended combat styles, best first */
 		List<String> styles = Collections.emptyList();
 		/** undead, demon, dragon, kalphite, vampyre, golem, leafy, wilderness... */
@@ -94,6 +99,8 @@ class TabData
 		String style;
 		/** dragonfire protection: needed unless the player has a super antifire */
 		boolean dragonfire;
+		/** an inventory placeholder the player's own best fills: "food" */
+		String kind;
 	}
 
 	static class Tab

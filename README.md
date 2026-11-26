@@ -8,6 +8,7 @@ A fork of [BiS Bank Tabs](https://github.com/Dewdul/bis-bank-tabs) by Dewdul (BS
 - The gear comes from the boss's OSRS Wiki *Strategies* page (its Recommended equipment tables). For each slot, the best item you own from the wiki's ranking takes the slot; when you own none, the plugin's own best-in-slot pick stays.
 - Each style the wiki lists (melee, ranged, magic) is built, and the one you're best armed for wins, the same way the Slayer tab picks a style. What the wiki's pick replaced waits beside it.
 - Items the wiki says only work as a full set (Void, Justiciar) are skipped, since the tab picks slot by slot. Off task the slayer helmet isn't forced in.
+- The wiki's **inventory** for that style follows the setup: what you own of it, in the wiki's slot order, rune pouch runes included. Its "cheap food" slots show your best food and "cheap prayer" your prayer potions or super restores.
 - Bosses that are slayer tasks also bring their task data: banes, needed gear (a dragonfire shield, Boots of stone), tools and potions. The wiki's special attack weapons go in the items row.
 - Refresh the wiki data with `python tools/add_bosses.py --refresh`, or run the **Build** workflow on GitHub with *refresh_bosses* ticked.
 

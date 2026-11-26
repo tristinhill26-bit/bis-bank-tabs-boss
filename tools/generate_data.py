@@ -453,6 +453,10 @@ def slayer_tasks(res):
     return out
 
 
+# the wiki's {{Cheap prayer}} inventory slot: whichever of these the player owns first
+PRAYER_RESTORES = ["Prayer potion", "Super restore", "Sanfew serum"]
+
+
 def boss_key(name):
     """As the plugin compares boss names: case, a leading "the" and punctuation don't count."""
     k = name.lower().strip()
@@ -473,7 +477,9 @@ def bosses(wiki, res, slayer):
     out, unknown = {}, set()
 
     def known(name, pic):
-        for n in (name, pic):
+        # then without a version suffix: "Dragon dagger(p++)" is a version of the Dragon dagger page
+        bare = re.sub(r"\s*\([^()]*\)$", "", name or "")
+        for n in (name, pic, bare):
             if n and n.lower() in wiki.page_ids:
                 return wiki.page_name[n.lower()]
         unknown.add(name)
@@ -507,13 +513,29 @@ def bosses(wiki, res, slayer):
                 styles.append(style)
         if not setups:
             continue
+        inventories = {}
+        for inv in boss_setups.parse_inventories(pages[page]):
+            style = inv["style"] or "any"
+            if style in inventories:
+                continue
+            reason = "%s wiki inventory (%s)" % (name, inv["label"] or style)
+            items = []
+            for item, kind in inv["items"]:
+                if kind == "food":
+                    items.append({"entries": [], "kind": "food", "reason": reason})
+                    continue
+                names = PRAYER_RESTORES if kind == "prayer" else [n for n in [known(boss_setups.page_of(item), item)] if n]
+                if names:
+                    items.append({"entries": res.entries(names), "reason": reason})
+            if items:
+                inventories[style] = items
         task = tasks.get(boss_key(name))
         tools = list(task["tools"]) if task else []
         if specials:
             tools.append({"entries": res.entries(specials), "required": False,
                           "reason": "Special attack (%s wiki setup)" % name})
         out[name.lower()] = {
-            "name": name, "page": page, "boss": True, "setups": setups,
+            "name": name, "page": page, "boss": True, "setups": setups, "inventories": inventories,
             "aliases": [task["name"]] if task else [],
             "styles": styles + [s for s in (task["styles"] if task else []) if s not in styles],
             "categories": task["categories"] if task else [],
@@ -1082,6 +1104,7 @@ def main():
         "tabs": tabs,
         "slayerTasks": slayer,
         "bosses": bosses(wiki, res, slayer),
+        "bossDataVersion": boss_setups.BOSS_DATA_VERSION,
         # full dragonfire immunity: with one, a dragonfire shield is a choice, not a need
         "superAntifire": res.flat(["Extended super antifire", "Super antifire potion"]),
         "notFood": res.flat(curated.NOT_FOOD),

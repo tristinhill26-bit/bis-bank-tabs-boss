@@ -6,6 +6,7 @@ variations and the pages with Recommended equipment tables, and it reuses the sl
 Stdlib only. Usage:
   python tools/add_bosses.py            # use cached wiki data if present
   python tools/add_bosses.py --refresh  # re-download it
+  python tools/add_bosses.py --check    # exit 1 when tabs.json's boss data is missing or an older format
 """
 import json
 import sys
@@ -13,10 +14,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import generate_data as g  # noqa: E402
+from boss_setups import BOSS_DATA_VERSION  # noqa: E402
 
 
 def main():
     payload = json.loads(g.OUT.read_text(encoding="utf-8"))
+    if "--check" in sys.argv:
+        current = payload.get("bosses") and payload.get("bossDataVersion") == BOSS_DATA_VERSION
+        print("boss data is %s" % ("current" if current else "missing or outdated"))
+        sys.exit(0 if current else 1)
     rows = g.cached("items.json", g.fetch_items)
     variations = g.cached("item_variations.json", g.fetch_variations)
     wiki = g.Wiki(rows)
@@ -27,6 +33,7 @@ def main():
     tabs.insert(at, {"key": "boss", "name": "Boss", "kind": "gear", "icon": 0, "sections": []})
     payload["tabs"] = tabs
     payload["bosses"] = g.bosses(wiki, res, payload.get("slayerTasks", {}))
+    payload["bossDataVersion"] = BOSS_DATA_VERSION
     if res.errors:
         print("\n".join(sorted(set(res.errors))))
         sys.exit("%d unresolved names" % len(set(res.errors)))

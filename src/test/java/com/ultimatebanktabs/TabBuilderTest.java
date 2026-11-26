@@ -993,6 +993,11 @@ public class TabBuilderTest
 		setups.put("melee", Arrays.asList(wikiSlot("WEAPON", "Dragon hunter lance", "Rune scimitar"),
 			wikiSlot("HEAD", "Torva full helm", "Rune full helm")));
 		boss.setups = setups;
+		TabData.TaskItem cheapFood = new TabData.TaskItem();
+		cheapFood.kind = "food";
+		Map<String, List<TabData.TaskItem>> inventories = new HashMap<>();
+		inventories.put("melee", Arrays.asList(wikiSlot(null, "Dragon dagger"), cheapFood));
+		boss.inventories = inventories;
 		Map<String, TabData.SlayerTaskData> bosses = new HashMap<>(data.bosses);
 		bosses.put("test boss", boss);
 		Map<String, TabData.SlayerTaskData> before = data.bosses;
@@ -1004,7 +1009,11 @@ public class TabBuilderTest
 			assertEquals("the wiki's best owned weapon", id("Rune scimitar"), (int) setup.get("WEAPON"));
 			assertEquals(id("Rune full helm"), (int) setup.get("HEAD"));
 			assertTrue("the stat pick waits beside", items(section(built, "boss_alts")).contains(id("Abyssal whip")));
-			assertTrue("food comes along", items(section(built, "boss_supplies")).contains(id("Shark")));
+			assertEquals("the wiki's inventory in slot order, cheap food as your best food",
+				Arrays.asList(id("Dragon dagger"), id("Shark")),
+				order(section(bossTab("Test Boss", "Abyssal whip", "Dragon dagger", "Shark"), "boss_inventory")));
+			assertFalse("food isn't repeated in the supplies", items(section(bossTab("Test Boss", "Abyssal whip",
+				"Dragon dagger", "Shark"), "boss_supplies")).contains(id("Shark")));
 			assertEquals("aliases work", id("Rune scimitar"),
 				(int) bySlot(section(bossTab("TB", "Rune scimitar"), "boss_main")).get("WEAPON"));
 		}

@@ -28,10 +28,9 @@ jobs:
 
       - name: Boss setups from the wiki
         id: bosses
-        # on request, or while tabs.json has no boss data yet
+        # on request, or while tabs.json's boss data is missing or an older format
         run: |
-          has=$(python3 -c "import json; d=json.load(open('src/main/resources/com/ultimatebanktabs/tabs.json')); print('yes' if d.get('bosses') else 'no')")
-          if [ "${{ inputs.refresh_bosses }}" = "true" ] || [ "$has" = "no" ]; then
+          if [ "${{ inputs.refresh_bosses }}" = "true" ] || ! python3 tools/add_bosses.py --check; then
             python3 tools/add_bosses.py --refresh
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi

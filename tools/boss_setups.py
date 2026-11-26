@@ -22,6 +22,8 @@ import re
 import wiki_recipes
 
 TEMPLATE = "Template:Recommended equipment"
+# bump when the shape of the boss data in tabs.json changes, so the Build workflow regenerates it
+BOSS_DATA_VERSION = 2
 
 # wiki parameter -> RuneLite EquipmentInventorySlot name
 SLOTS = {"head": "HEAD", "neck": "AMULET", "cape": "CAPE", "body": "BODY", "legs": "LEGS", "weapon": "WEAPON",
@@ -229,3 +231,71 @@ def fetch_pages():
                 pages[p["title"]] = revs[0]["slots"]["main"]["content"]
         print("  boss setups: %d/%d pages" % (len(pages), len(titles)))
     return pages
+
+
+# placeholders the wiki puts in inventory slots: the plugin fills them with the player's own best
+PLACEHOLDERS = {"cheap food": "food", "cheap prayer": "prayer"}
+HEADING = re.compile(r"^==+[^=\n]+==+\s*$", re.M)
+TAB_LABEL = re.compile(r"^([^=\n|{}<\[]{2,60})=\s*$", re.M)
+
+
+def parse_inventories(text):
+    """Each {{Inventory}} on a page, with its {{Rune pouch}}: {"label", "style", "items": [(name or None, kind)]}.
+
+    The style is the tabber tab it sits in ("Ranged (crossbow)="), when that tab is in the same section, else the
+    style of the last equipment table before it. A slot is an item page name ("Divine ranging potion(3)") with
+    kind None, or a placeholder ({{Cheap food}}, {{Cheap prayer}}) with no name and kind "food" or "prayer".
+    Empty slots are skipped and each item is listed once, in slot order."""
+    tables = [(m.start(), styles_of(split_params(call).get("style", "")))
+              for m, call in ((m, text[m.start():_close(text, m.start()) or len(text)])
+                              for m in re.finditer(r"\{\{\s*Recommended equipment\s*[|\n}]", text, re.I))]
+    out = []
+    for m in re.finditer(r"\{\{\s*Inventory\s*[|\n}]", text, re.I):
+        start = m.start()
+        end = _close(text, start) or len(text)
+        section = max([h.end() for h in HEADING.finditer(text, 0, start)] or [0])
+        labels = [lm.group(1).strip() for lm in TAB_LABEL.finditer(text, section, start)]
+        label = labels[-1] if labels else ""
+        style = styles_of(label)
+        if style is None and not label:
+            before = [s for pos, s in tables if pos < start]
+            style = before[-1] if before else None
+        params = split_params(text[start:end])
+        slots = sorted((int(k), v) for k, v in params.items() if k.isdigit())
+        # the rune pouch that goes with it: the next one before another inventory, tab or heading
+        tail = text[end:]
+        stop = min([p for p in (tail.find("|-|"), tail.lower().find("{{inventory")) if p >= 0]
+                   + [h.start() for h in HEADING.finditer(tail)][:1] + [len(tail)])
+        pouch = re.search(r"\{\{\s*Rune pouch\s*[|\n}]", tail[:stop], re.I)
+        if pouch:
+            call = tail[pouch.start():_close(tail, pouch.start()) or len(tail)]
+            slots += [(100 + int(k), v) for k, v in split_params(call).items() if k.isdigit()]
+        items = []
+        for _, value in slots:
+            entry = _slot(value)
+            if entry and entry not in items:
+                items.append(entry)
+        out.append({"label": label, "style": style, "items": items})
+    return out
+
+
+def _slot(value):
+    """One inventory slot's (name, kind), or None when empty or unreadable."""
+    value = re.sub(r"<[^>]+>", "", value).strip()
+    if not value:
+        return None
+    m = re.match(r"\{\{\s*([^|}]+)(?:\|([^|}]*))?[^}]*\}\}", value)
+    if m:
+        name = m.group(1).strip()
+        if name.lower() in PLACEHOLDERS:
+            return (None, PLACEHOLDERS[name.lower()])
+        if name.lower().startswith("plink") and m.group(2):
+            return (m.group(2).strip(), None)
+        return None
+    link = re.match(r"\[\[([^|\]#]+)", value)
+    return ((link.group(1) if link else value).strip(), None)
+
+
+def page_of(name):
+    """The item page an inventory name means: "Divine ranging potion(3)" -> "Divine ranging potion"."""
+    return re.sub(r"\s*\(\d+\)$", "", name).strip()

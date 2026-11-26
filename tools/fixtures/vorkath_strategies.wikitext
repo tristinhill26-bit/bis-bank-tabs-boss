@@ -32,3 +32,41 @@ Intro text with a [[Vorkath]] link.
 |style = Ranged (bowfa)
 |weapon1 = {{plink|Bow of Faerdhinen}}
 }}
+
+==Inventory setups==
+Some text.
+<tabber>
+Ranged (crossbow)=
+{{Equipment|align = right
+|head = Void ranger helm
+}}
+{{Inventory
+|align = right
+|1 = Diamond dragon bolts (e)
+|2 = Divine ranging potion(3)
+|3 = Extended super antifire(2)
+|4 = Zaryte crossbow
+|5 = {{Cheap prayer}}
+|6 = {{Cheap prayer}}
+|7 = Cooked karambwan
+|8 = {{Cheap food}}
+|9 = Cooked karambwan
+|10 =
+|28 = Divine rune pouch
+}}
+
+{{Rune pouch|align=right
+|1=Law rune
+|2=Dust rune
+|3=Chaos rune
+}}
+|-|
+Melee=
+{{Inventory
+|1 = Divine super combat potion(4)
+|2 = {{plinkt|Super restore(4)}}
+|3 = {{Cheap food}}
+}}
+</tabber>
+
+==References==

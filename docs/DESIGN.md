@@ -76,7 +76,9 @@ Started 2026-10-04. The request was an "ultimate bank plugin" that does three th
   - the task's own slot gear first (a required piece keeps its slot);
   - then the wiki setup: weapon first, then armour, then ammo that fits the weapon; the best owned item of each takes the slot and the item it replaces goes beside;
   - the slayer helmet only counts when the tab follows a boss slayer task (`onTask`).
-- **Sections** are `boss_main`, `boss_alts`, `boss_items` and `boss_supplies`. The tab is hidden while no boss is set.
+- **Inventory.** `boss_setups.parse_inventories` reads each `{{Inventory}}` (slots 1-28) and the `{{Rune pouch}}` after it. Its style is the tabber tab it sits in ("Ranged (crossbow)="), else the last equipment table's style, else `any`. Each item is listed once, in slot order; "Divine ranging potion(3)" means the Divine ranging potion page (every dose). `{{Cheap food}}` becomes a `food` slot (the style's best food in game) and `{{Cheap prayer}}` the first owned of prayer potion, super restore or sanfew serum. In game, `boss_inventory` follows the setup: the first owned version of each, before the items and supplies rows, which then skip what it shows.
+- **Sections** are `boss_main`, `boss_alts`, `boss_inventory`, `boss_items` and `boss_supplies`. The tab is hidden while no boss is set.
+- **Data version.** `boss_setups.BOSS_DATA_VERSION` is written as `bossDataVersion`; `add_bosses.py --check` fails while it differs, so the Build workflow regenerates the data after a format change.
 - **CI.** `.github/workflows/build.yml` runs the parser tests, fills in the boss data when tabs.json has none (or on request), builds and tests the plugin, uploads the jar and commits refreshed data back.
 
 ## Food

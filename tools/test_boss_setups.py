@@ -9,6 +9,27 @@ import boss_setups  # noqa: E402
 FIXTURE = (Path(__file__).resolve().parent / "fixtures" / "vorkath_strategies.wikitext").read_text(encoding="utf-8")
 
 
+class InventoryTest(unittest.TestCase):
+    def setUp(self):
+        self.inventories = boss_setups.parse_inventories(FIXTURE)
+
+    def test_each_tab_is_a_style(self):
+        self.assertEqual([("Ranged (crossbow)", "ranged"), ("Melee", "melee")],
+                         [(i["label"], i["style"]) for i in self.inventories])
+
+    def test_slots_in_order_once_each_with_placeholders_and_the_rune_pouch(self):
+        self.assertEqual([("Diamond dragon bolts (e)", None), ("Divine ranging potion(3)", None),
+                          ("Extended super antifire(2)", None), ("Zaryte crossbow", None), (None, "prayer"),
+                          ("Cooked karambwan", None), (None, "food"), ("Divine rune pouch", None),
+                          ("Law rune", None), ("Dust rune", None), ("Chaos rune", None)],
+                         self.inventories[0]["items"])
+
+    def test_plinks_and_pages(self):
+        self.assertIn(("Super restore(4)", None), self.inventories[1]["items"])
+        self.assertEqual("Divine ranging potion", boss_setups.page_of("Divine ranging potion(3)"))
+        self.assertEqual("Diamond dragon bolts (e)", boss_setups.page_of("Diamond dragon bolts (e)"))
+
+
 class ParseTest(unittest.TestCase):
     def setUp(self):
         self.tables = boss_setups.parse(FIXTURE)
