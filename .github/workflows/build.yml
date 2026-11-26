@@ -1,0 +1,60 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      refresh_bosses:
+        description: Re-download the wiki's boss setups and commit the new tabs.json
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Test the wiki parser
+        run: python3 -m unittest discover -s tools -p "test_*.py"
+
+      - name: Boss setups from the wiki
+        id: bosses
+        # on request, or while tabs.json has no boss data yet
+        run: |
+          has=$(python3 -c "import json; d=json.load(open('src/main/resources/com/ultimatebanktabs/tabs.json')); print('yes' if d.get('bosses') else 'no')")
+          if [ "${{ inputs.refresh_bosses }}" = "true" ] || [ "$has" = "no" ]; then
+            python3 tools/add_bosses.py --refresh
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build and test
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bis-bank-tabs-boss
+          path: build/libs/*.jar
+
+      - name: Commit the refreshed boss data
+        if: steps.bosses.outputs.changed == 'true' && github.event_name != 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/main/resources/com/ultimatebanktabs/tabs.json
+          git diff --cached --quiet || { git commit -m "Boss setups from the OSRS Wiki"; git push; }

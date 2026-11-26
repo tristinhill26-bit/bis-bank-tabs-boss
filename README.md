@@ -1,4 +1,19 @@
-# BiS Bank Tabs
+# BiS Bank Tabs Boss
+
+A fork of [BiS Bank Tabs](https://github.com/Dewdul/bis-bank-tabs) by Dewdul (BSD 2-Clause, see [LICENSE](LICENSE)) that adds a **Boss tab**: pick a boss and the tab lays out the wiki's recommended gear for it from what you own.
+
+## Boss tab
+
+- Type a boss in **Boss to gear for** (Vorkath, Zulrah, Alchemical Hydra, Nex...). Leave it blank and the tab follows your slayer task whenever it's a boss.
+- The gear comes from the boss's OSRS Wiki *Strategies* page (its Recommended equipment tables). For each slot, the best item you own from the wiki's ranking takes the slot; when you own none, the plugin's own best-in-slot pick stays.
+- Each style the wiki lists (melee, ranged, magic) is built, and the one you're best armed for wins, the same way the Slayer tab picks a style. What the wiki's pick replaced waits beside it.
+- Items the wiki says only work as a full set (Void, Justiciar) are skipped, since the tab picks slot by slot. Off task the slayer helmet isn't forced in.
+- Bosses that are slayer tasks also bring their task data: banes, needed gear (a dragonfire shield, Boots of stone), tools and potions. The wiki's special attack weapons go in the items row.
+- Refresh the wiki data with `python tools/add_bosses.py --refresh`, or run the **Build** workflow on GitHub with *refresh_bosses* ticked.
+
+---
+
+# BiS Bank Tabs (original README)
 
 **Your best gear for every style and skill, already laid out in your bank.**
 

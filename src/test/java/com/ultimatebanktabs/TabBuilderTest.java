@@ -964,6 +964,68 @@ public class TabBuilderTest
 		assertTrue(herb.getSections().stream().noneMatch(s -> s.getKey().equals("main") && !s.getItems().isEmpty()));
 	}
 
+	static TabData.TaskItem wikiSlot(String slot, String... ranked)
+	{
+		TabData.TaskItem item = new TabData.TaskItem();
+		item.slot = slot;
+		item.entries = Arrays.stream(ranked).map(n -> ids.get(n)).collect(Collectors.toList());
+		item.reason = "Test boss wiki setup (" + slot + ")";
+		return item;
+	}
+
+	static TabBuilder.Built bossTab(String boss, String... owned)
+	{
+		TabBuilder.Options options = new TabBuilder.Options();
+		options.boss = boss;
+		return builder.build(tab("boss"), own(owned), options);
+	}
+
+	@Test
+	public void theBossTabTakesTheWikiRankingAndKeepsTheStatPickBeside()
+	{
+		TabData.SlayerTaskData boss = new TabData.SlayerTaskData();
+		boss.name = "Test Boss";
+		boss.aliases = Collections.singletonList("tb");
+		boss.boss = true;
+		boss.styles = Collections.singletonList("melee");
+		Map<String, List<TabData.TaskItem>> setups = new HashMap<>();
+		// the wiki ranks the scimitar first: an owned wiki item beats the plugin's stat pick (the whip)
+		setups.put("melee", Arrays.asList(wikiSlot("WEAPON", "Dragon hunter lance", "Rune scimitar"),
+			wikiSlot("HEAD", "Torva full helm", "Rune full helm")));
+		boss.setups = setups;
+		Map<String, TabData.SlayerTaskData> bosses = new HashMap<>(data.bosses);
+		bosses.put("test boss", boss);
+		Map<String, TabData.SlayerTaskData> before = data.bosses;
+		data.bosses = bosses;
+		try
+		{
+			TabBuilder.Built built = bossTab("The test boss", "Abyssal whip", "Rune scimitar", "Rune full helm", "Shark");
+			Map<String, Integer> setup = bySlot(section(built, "boss_main"));
+			assertEquals("the wiki's best owned weapon", id("Rune scimitar"), (int) setup.get("WEAPON"));
+			assertEquals(id("Rune full helm"), (int) setup.get("HEAD"));
+			assertTrue("the stat pick waits beside", items(section(built, "boss_alts")).contains(id("Abyssal whip")));
+			assertTrue("food comes along", items(section(built, "boss_supplies")).contains(id("Shark")));
+			assertEquals("aliases work", id("Rune scimitar"),
+				(int) bySlot(section(bossTab("TB", "Rune scimitar"), "boss_main")).get("WEAPON"));
+		}
+		finally
+		{
+			data.bosses = before;
+		}
+	}
+
+	@Test
+	public void theBossTabFallsBackToTheSlayerTaskData()
+	{
+		// no wiki data in the test build: a boss slayer task's own setup, named loosely
+		TabBuilder.Built built = bossTab("alchemical hydra", "Abyssal whip", "Slayer helmet (i)", "Rune full helm");
+		assertFalse(built.getSections().isEmpty());
+		assertTrue("off task the slayer helmet isn't forced in", section(built, "boss_main").getItems().stream()
+			.noneMatch(p -> p.getReason() != null && p.getReason().startsWith("Slayer helmet")));
+		assertTrue("nothing named, nothing built", bossTab("", "Abyssal whip").getSections().isEmpty());
+		assertTrue("unknown bosses build nothing", bossTab("not a boss", "Abyssal whip").getSections().isEmpty());
+	}
+
 	static TabBuilder.Built slayerOnTask(String task, String... owned)
 	{
 		TabBuilder.Options options = new TabBuilder.Options();

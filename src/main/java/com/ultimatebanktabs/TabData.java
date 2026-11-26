@@ -29,6 +29,11 @@ class TabData
 	List<Tab> tabs = Collections.emptyList();
 	/** in-game slayer task name (lower case) -> the setup it wants */
 	Map<String, SlayerTaskData> slayerTasks = Collections.emptyMap();
+	/**
+	 * boss name (lower case) -> its setup: the slayer task's data plus the wiki's recommended equipment per style
+	 * (tools/boss_setups.py, from each boss's Strategies page). The Boss tab builds from it.
+	 */
+	Map<String, SlayerTaskData> bosses = Collections.emptyMap();
 	/** super antifire potions, every dose: full dragonfire immunity */
 	List<Integer> superAntifire = Collections.emptyList();
 	/** random, harmful, raid-only and blighted food: never shown as food, even when RuneLite counts it */
@@ -56,7 +61,16 @@ class TabData
 	static class SlayerTaskData
 	{
 		String name;
+		/** other names a player may type for it ("hydra", "kq") */
+		List<String> aliases = Collections.emptyList();
 		boolean boss;
+		/** the OSRS Wiki page its recommended equipment came from ("Vorkath/Strategies"), or null */
+		String page;
+		/**
+		 * the wiki's recommended equipment, per style (melee, ranged, magic): one item per slot, its entries
+		 * ranked the way the wiki ranks them (equal options share a rank, in the wiki's order)
+		 */
+		Map<String, List<TaskItem>> setups = Collections.emptyMap();
 		/** recommended combat styles, best first */
 		List<String> styles = Collections.emptyList();
 		/** undead, demon, dragon, kalphite, vampyre, golem, leafy, wilderness... */

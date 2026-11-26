@@ -1,0 +1,34 @@
+Intro text with a [[Vorkath]] link.
+
+{{Recommended equipment
+|style = Ranged (crossbow)
+|head1 = {{plink|Masori mask (f)}} / {{plink|Void ranger helm}}{{efn|Only use with the full set of Void knight armour.|name=void}}
+|head2 = {{plink|Masori mask}} / {{plink|Serpentine helm}}{{efn|Negates the need to bring [[anti-venom]] potions|name=serp}}
+|head3 = {{plink|Crystal helm}}
+|neck1 = {{plink|Salve amulet(ei)}}
+|body1 = {{plink|Masori body (f)}} / {{plink|Elite void top}}{{efn|name=void}}
+|weapon1 = {{plink|Ascension crossbows}}
+|weapon2 = {{plink|Dragon hunter crossbow}} / {{plink|Toxic blowpipe}}{{efn|name=dragonfire}}
+|weapon3 = {{plink|Bow of Faerdhinen}}{{efn|Only with crystal armour.}}{{efn|Loses some anti-fire protection. You must pray [[protect from magic]].|name=dragonfire}}{{efn|name=acid}}
+|weapon4 = {{plink|Armadyl crossbow}}{{efn|Cannot safely attack during the acid phase|name=acid}} /<br>{{plink|Dragon crossbow}}
+|shield1 = {{plink|Twisted buckler}}{{efn|name=dragonfire}} /<br />{{plink|Dragonfire ward}}
+|ammo2 = {{plink|Ruby dragon bolts (e)}}{{efn|Use until 250-300 HP (33-40%).|name=ruby}} + <br />{{plink|Diamond dragon bolts (e)}}
+|hands1 = {{plink|Zaryte vambraces}} / {{plink|Void knight gloves}}{{efn|name=void}}
+|feet4 = {{plink|Blessed boots|pic=Ancient d'hide boots}} /<br/>{{plink|Aranea boots}}
+|ring5 = {{plink|Explorer's ring 4|txt=Explorer ring}}
+|special1 = {{plink|Zaryte crossbow}}
+}}
+{{notelist}}
+
+{{Recommended equipment
+|style = Melee
+|head1 = {{plink|Torva full helm}} /</br>{{plink|Slayer helmet (i)}}{{efn|name=slayer}}
+|head4 = {{plink|Helm of Neitiznot}} / {{plink|Barrows helm|pic=Torag's helm}}
+|neck1 = {{plink|Amulet of rancour}} / {{plink|Salve amulet (e)}}{{efn|DPS is slightly higher with slayer helm (i). Only on a [[blue dragon]], [[zombie]], or Vorkath slayer task.|name=slayer}}
+|weapon1 = {{plink|Dragon hunter lance}}
+}}
+
+{{Recommended equipment
+|style = Ranged (bowfa)
+|weapon1 = {{plink|Bow of Faerdhinen}}
+}}

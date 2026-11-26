@@ -199,6 +199,21 @@ public interface UltimateBankTabsConfig extends Config
 		return true;
 	}
 
+	@ConfigItem(keyName = TAB_PREFIX + "boss", name = "Boss", position = 14, section = gearTabs,
+		description = "A tab geared for one boss: the wiki's recommended equipment, best you own first, plus its items and supplies")
+	default boolean boss()
+	{
+		return true;
+	}
+
+	@ConfigItem(keyName = "bossName", name = "Boss to gear for", position = 15, section = gearTabs,
+		description = "The boss the Boss tab sets up for, as the wiki names it (Vorkath, Zulrah, Alchemical Hydra...). "
+			+ "Blank: follows your slayer task when it's a boss")
+	default String bossName()
+	{
+		return "";
+	}
+
 	// ---------------------------------------------------------------- skills
 
 	@ConfigItem(keyName = TAB_PREFIX + "prayer", name = "Prayer", position = 20, section = skillTabs, description = "Prayer tab")

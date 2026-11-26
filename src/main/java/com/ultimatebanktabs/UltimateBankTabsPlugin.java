@@ -79,7 +79,7 @@ import net.runelite.client.util.Text;
 @PluginDependency(BankTagsPlugin.class)
 @PluginDependency(ItemStatPlugin.class)
 @PluginDescriptor(
-	name = "BiS Bank Tabs",
+	name = "BiS Bank Tabs Boss",
 	description = "Self-updating bank tabs with your best gear for every combat style and skill, laid out like the"
 		+ " equipment screen, plus what's better at something else, cheaper picks that save your best, and"
 		+ " Alchables, Clues and Junk tabs",
@@ -838,6 +838,7 @@ public class UltimateBankTabsPlugin extends Plugin
 		wide.budget = options.budget;
 		wide.foodCount = MAX_FOODS;
 		wide.slayerTask = options.slayerTask;
+		wide.boss = options.boss;
 		Set<Integer> kept = new HashSet<>();
 		TabData.Tab cosmetics = null;
 		for (TabData.Tab t : data.tabs)
@@ -1238,6 +1239,9 @@ public class UltimateBankTabsPlugin extends Plugin
 		options.combatSupplies = config.combatSupplies();
 		options.blightedSupplies = config.blightedSupplies();
 		options.slayerTask = slayerTask;
+		// a boss the player named, else the boss their slayer task is on (the Boss tab is hidden without one)
+		options.boss = !config.bossName().trim().isEmpty() ? config.bossName()
+			: slayerTask != null && builder.boss(slayerTask.getName()) != null ? slayerTask.getName() : null;
 		options.foodCount = config.foodCount();
 		options.highAlch = id -> itemManager.getItemComposition(id).getHaPrice();
 		options.gePrice = id -> (int) Math.min(Integer.MAX_VALUE, itemManager.getItemPrice(id));

@@ -77,6 +77,8 @@ class TabBuilder
 		Set<Integer> shownElsewhere = Collections.emptySet();
 		/** the player's current slayer task: the Slayer tab leads with its setup */
 		SlayerTask slayerTask;
+		/** the boss the Boss tab gears for, as the player typed it ("Vorkath", "hydra"), or null */
+		String boss;
 
 		// ---- the Junk tab (held, tradeable and gePrice above count too)
 		/** everything another tab shows or would show with all its content on, the Alchables tab included */
@@ -304,6 +306,14 @@ class TabBuilder
 		if (task != null)
 		{
 			sections.addAll(slayerTask(task, ctx, options));
+		}
+		TabData.SlayerTaskData boss = BOSS_TAB.equals(tab.key) ? boss(options.boss) : null;
+		if (boss != null)
+		{
+			// following a boss slayer task: on task, so the slayer helmet counts
+			boolean onTask = options.slayerTask != null && boss(options.slayerTask.getName()) == boss;
+			boolean wilderness = boss.categories.contains("wilderness") || onTask && options.slayerTask.isWilderness();
+			sections.addAll(taskBlock(boss, ctx, options, onTask, wilderness, "boss"));
 		}
 		// a skill tab's graceful filler waits until the alternatives are known (they fill empty slots first)
 		TabData.Pick filler = null;
@@ -615,6 +625,48 @@ class TabBuilder
 		}
 	}
 
+	/** The Boss tab's key in tabs.json. */
+	static final String BOSS_TAB = "boss";
+
+	/** How names compare: case, a leading "the" and anything but letters and digits don't count. */
+	static String bossKey(String name)
+	{
+		String k = name.toLowerCase().trim();
+		if (k.startsWith("the "))
+		{
+			k = k.substring(4);
+		}
+		return k.replaceAll("[^a-z0-9]", "");
+	}
+
+	/**
+	 * The setup for a boss the player named: the wiki boss data first (by name or alias), else a boss slayer
+	 * task's data (no wiki equipment, but its styles, banes, gear, tools and potions). Null when unknown.
+	 */
+	TabData.SlayerTaskData boss(String name)
+	{
+		if (name == null || name.trim().isEmpty())
+		{
+			return null;
+		}
+		String k = bossKey(name);
+		for (TabData.SlayerTaskData b : data.bosses.values())
+		{
+			if (bossKey(b.name).equals(k) || b.aliases.stream().anyMatch(a -> bossKey(a).equals(k)))
+			{
+				return b;
+			}
+		}
+		for (TabData.SlayerTaskData t : data.slayerTasks.values())
+		{
+			if (t.boss && (bossKey(t.name).equals(k) || t.aliases.stream().anyMatch(a -> bossKey(a).equals(k))))
+			{
+				return t;
+			}
+		}
+		return null;
+	}
+
 	/**
 	 * The Slayer tab's lead while on a task: the best setup for it from what the player owns. Each
 	 * recommended style is built from its best-in-slot set; the first armed with the task's own weapon wins,
@@ -625,6 +677,17 @@ class TabBuilder
 	 * with that style's potions, food and runes.
 	 */
 	private List<Section> slayerTask(TabData.SlayerTaskData task, Context ctx, Options options)
+	{
+		return taskBlock(task, ctx, options, true, options.slayerTask.isWilderness(), "ontask");
+	}
+
+	/**
+	 * A setup block for a slayer task ({@code onTask}) or a boss on the Boss tab. Off task the slayer helmet
+	 * does nothing, so it isn't forced in, and the wiki's recommended equipment for the chosen style (when the
+	 * data has it) takes each slot with the best item the player owns from the wiki's ranking.
+	 */
+	private List<Section> taskBlock(TabData.SlayerTaskData task, Context ctx, Options options, boolean onTask,
+		boolean wilderness, String key)
 	{
 		Options styleOptions = new Options();
 		styleOptions.backups = 0;
@@ -639,7 +702,7 @@ class TabBuilder
 		// categories say; no other master's is
 		List<String> categories = new ArrayList<>(task.categories);
 		categories.remove("wilderness");
-		if (options.slayerTask.isWilderness())
+		if (wilderness)
 		{
 			categories.add("wilderness");
 		}
@@ -675,10 +738,10 @@ class TabBuilder
 				byGroup.computeIfAbsent(p.getGroup(), g -> new ArrayList<>()).add(p);
 			}
 		}
-		String on = "On task: " + task.name;
+		String on = (onTask ? "On task: " : "Boss: ") + task.name;
 		Placement styledWeapon = main.get("WEAPON");
 		Placement styledHead = main.get("HEAD");
-		boolean helmet = takeSlot(main, byGroup.get("slayer_helm"), "HEAD", "Slayer helmet: stronger on every slayer task",
+		boolean helmet = onTask && takeSlot(main, byGroup.get("slayer_helm"), "HEAD", "Slayer helmet: stronger on every slayer task",
 			c.def, "slayer_helm");
 		if (categories.contains("undead"))
 		{
@@ -766,6 +829,30 @@ class TabBuilder
 				beside.add(p);
 			}
 		}
+		// the wiki's recommended equipment for this style: its best owned item takes each slot the task
+		// doesn't need for something else; what it replaces waits beside
+		List<TabData.TaskItem> wiki = new ArrayList<>(task.setups.getOrDefault(style, Collections.emptyList()));
+		// the weapon first: the ammo has to fit it
+		wiki.sort(Comparator.comparing(i -> "WEAPON".equals(i.slot) ? 0 : "AMMO".equals(i.slot) ? 2 : 1));
+		for (TabData.TaskItem item : wiki)
+		{
+			if (item.slot == null || needs.contains(item.slot))
+			{
+				continue;
+			}
+			Placement p = "AMMO".equals(item.slot) ? fitting(item, main.get("WEAPON"), ctx) : first(item, ctx);
+			if (p == null)
+			{
+				continue;
+			}
+			Placement there = main.put(item.slot, p);
+			taskAmmo |= "AMMO".equals(item.slot);
+			if (there != null && there.getItemId() != p.getItemId() && !"AMMO".equals(item.slot))
+			{
+				beside.add(new Placement(there.getItemId(), item.slot, "task_" + item.slot,
+					there.getReason() != null ? there.getReason() : "Best by stats"));
+			}
+		}
 		if (!taskAmmo)
 		{
 			fitAmmo(main, weapon, c.in);
@@ -793,8 +880,9 @@ class TabBuilder
 		}
 		// the style's prayer gear, drawn as its own equipment screen beside the setup as on the combat tabs
 		alts.addAll(byGroup.getOrDefault("prayer_gear", Collections.emptyList()));
-		out.add(new Section("ontask_main", "Task setup", "equipment", claim(block, ctx)));
-		out.add(new Section("ontask_alts", "Task alternatives", "alts", claim(alts, ctx)));
+		String title = "ontask".equals(key) ? "Task" : task.name;
+		out.add(new Section(key + "_main", title + " setup", "equipment", claim(block, ctx)));
+		out.add(new Section(key + "_alts", title + " alternatives", "alts", claim(alts, ctx)));
 		List<Placement> tools = new ArrayList<>();
 		for (boolean required : new boolean[]{true, false})
 		{
@@ -809,13 +897,13 @@ class TabBuilder
 				}
 			}
 		}
-		out.add(new Section("ontask_items", "Task items", "rows", claim(tools, ctx)));
+		out.add(new Section(key + "_items", title + " items", "rows", claim(tools, ctx)));
 		List<Placement> supplies = new ArrayList<>();
 		for (List<Integer> entry : task.supplies)
 		{
 			for (int id : ownedOf(entry, ctx))
 			{
-				supplies.add(new Placement(id, null, "task_supplies", "Needed on this task"));
+				supplies.add(new Placement(id, null, "task_supplies", onTask ? "Needed on this task" : "Needed at " + task.name));
 			}
 		}
 		for (Section sec : c.built.getSections())
@@ -827,7 +915,7 @@ class TabBuilder
 				supplies.addAll(sec.getItems());
 			}
 		}
-		out.add(new Section("ontask_supplies", "Task supplies", "rows", claim(supplies, ctx)));
+		out.add(new Section(key + "_supplies", title + " supplies", "rows", claim(supplies, ctx)));
 		return out;
 	}
 
@@ -937,6 +1025,28 @@ class TabBuilder
 				if (!"AMMO".equals(item.slot) || fits.stream().anyMatch(e -> e.contains(id)))
 				{
 					return new Placement(id, item.slot, "task_" + item.slot, item.reason);
+				}
+			}
+		}
+		return null;
+	}
+
+	/** The best owned ammo of a wiki slot that the weapon fires (none for a weapon without ammo), or null. */
+	private Placement fitting(TabData.TaskItem item, Placement weapon, Context ctx)
+	{
+		String cls = weapon != null ? launcherAmmo.get(weapon.getItemId()) : null;
+		if (cls == null)
+		{
+			return null;
+		}
+		List<List<Integer>> fits = data.ammoClasses.getOrDefault(cls, Collections.emptyList());
+		for (List<Integer> entry : item.entries)
+		{
+			for (int id : ownedOf(entry, ctx))
+			{
+				if (fits.stream().anyMatch(e -> e.contains(id)))
+				{
+					return new Placement(id, "AMMO", "task_AMMO", item.reason);
 				}
 			}
 		}

@@ -64,6 +64,21 @@ Started 2026-10-04. The request was an "ultimate bank plugin" that does three th
     - the general Slayer sections, without repeating anything the block shows.
   - **Layout.** A block that comes and goes with the task leaves the player's arrangement where it was (`LayoutMerger`).
 
+## Boss tab (fork)
+
+- **Data.** `tools/boss_setups.py` reads every page that uses `{{Recommended equipment}}` (about 150, mostly `<Boss>/Strategies`). Each table is one style (`style =` label: "Ranged (crossbow)" is ranged; hybrid labels are skipped) with `head1..n`, `neck`, `cape`, `body`, `legs`, `weapon`, `shield`, `ammo`, `hands`, `feet`, `ring` and `special` cells. The number is the rank; the items in one cell (`{{plink}}` or `[[links]]`, split by `/`, `+` or `<br>`) are equal options in the wiki's order.
+  - A footnote right after an item (`{{efn}}`, including a named one defined elsewhere on the page) that ties it to a full set drops it. Slayer helmets and black masks are dropped too.
+  - A name the item index doesn't know falls back to the item the cell pictures (`pic=`), else is left out with a warning.
+  - A style's first table wins; later ones (a bowfa table after the crossbow one) are ignored.
+- **`bosses` in tabs.json** (`generate_data.bosses`, or `tools/add_bosses.py` to patch only this part): keyed by boss name in lower case, in the slayer task shape plus `page` and `setups` (style -> one `TaskItem` per slot, entries in wiki rank order). A boss that is a slayer task takes that task's categories, slot gear, tools and potions, and its in-game name as an alias. Special attack weapons become a tool.
+- **In game.** `TabBuilder.boss(name)` matches the typed name with case, a leading "the" and punctuation ignored, by name or alias, then falls back to a boss slayer task's data. `taskBlock` (the Slayer task block, generalised) builds it:
+  - styles in the wiki's order, then the task's; the first armed one wins as on the Slayer tab;
+  - the task's own slot gear first (a required piece keeps its slot);
+  - then the wiki setup: weapon first, then armour, then ammo that fits the weapon; the best owned item of each takes the slot and the item it replaces goes beside;
+  - the slayer helmet only counts when the tab follows a boss slayer task (`onTask`).
+- **Sections** are `boss_main`, `boss_alts`, `boss_items` and `boss_supplies`. The tab is hidden while no boss is set.
+- **CI.** `.github/workflows/build.yml` runs the parser tests, fills in the boss data when tabs.json has none (or on request), builds and tests the plugin, uploads the jar and commits refreshed data back.
+
 ## Food
 
 - **Live heals.** The `food` pick ranks the player's foods by the HP one eat heals them now. That number comes from RuneLite's `ItemStatChangesService` (`@PluginDependency(ItemStatPlugin.class)`), which holds the data behind the Item Stats tooltips. It counts plain food (`FoodBase`) and food combos with no stat drain, so a jug of wine, brews and random foods are out. Anglerfish follow the player's Hitpoints level, and a food missing from `tabs.json` still counts.

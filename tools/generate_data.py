@@ -24,6 +24,7 @@ from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import boss_setups  # noqa: E402
 import curated  # noqa: E402
 import wiki_recipes  # noqa: E402
 
@@ -449,6 +450,80 @@ def slayer_tasks(res):
                 "slots": items(t["slot_items"], True), "tools": items(t["tools"], False), "supplies": supplies}
         for name in [t["game_name"]] + t.get("aliases", []):
             out[name.lower()] = data
+    return out
+
+
+def boss_key(name):
+    """As the plugin compares boss names: case, a leading "the" and punctuation don't count."""
+    k = name.lower().strip()
+    k = k[4:] if k.startswith("the ") else k
+    return re.sub(r"[^a-z0-9]", "", k)
+
+
+def bosses(wiki, res, slayer):
+    """Every page with a wiki Recommended equipment table (boss_setups.py), keyed by boss name in lower case:
+    the wiki's ranked gear per style, plus the slayer task's data (banes, tools, potions) for bosses that are
+    one. Names the item index doesn't know are left out with a warning (set pages like "Barrows helm" fall
+    back to the item the table pictures)."""
+    pages = cached("boss_pages.json", boss_setups.fetch_pages)
+    tasks = {}
+    for data in slayer.values():
+        if data["boss"]:
+            tasks[boss_key(data["name"])] = data
+    out, unknown = {}, set()
+
+    def known(name, pic):
+        for n in (name, pic):
+            if n and n.lower() in wiki.page_ids:
+                return wiki.page_name[n.lower()]
+        unknown.add(name)
+        return None
+
+    for page in sorted(pages):
+        name = boss_setups.boss_name(page)
+        setups, styles, specials = {}, [], []
+        for table in boss_setups.parse(pages[page]):
+            style = table["style"]
+            if style is None or style in setups:
+                # hybrid tables, and a style's later tables (the first is the wiki's main one)
+                continue
+            items = []
+            for slot, ranks in table["slots"].items():
+                names = []
+                for rank in ranks:
+                    for item in rank:
+                        n = known(*item)
+                        if n and n not in names:
+                            names.append(n)
+                if not names:
+                    continue
+                if slot == "SPECIAL":
+                    specials += [n for n in names if n not in specials]
+                    continue
+                items.append({"slot": slot, "entries": res.entries(names), "required": False,
+                              "reason": "%s wiki setup (%s)" % (name, table["label"] or style)})
+            if items:
+                setups[style] = items
+                styles.append(style)
+        if not setups:
+            continue
+        task = tasks.get(boss_key(name))
+        tools = list(task["tools"]) if task else []
+        if specials:
+            tools.append({"entries": res.entries(specials), "required": False,
+                          "reason": "Special attack (%s wiki setup)" % name})
+        out[name.lower()] = {
+            "name": name, "page": page, "boss": True, "setups": setups,
+            "aliases": [task["name"]] if task else [],
+            "styles": styles + [s for s in (task["styles"] if task else []) if s not in styles],
+            "categories": task["categories"] if task else [],
+            "slots": task["slots"] if task else [],
+            "tools": tools,
+            "supplies": task["supplies"] if task else []}
+    if unknown:
+        print("boss setups: %d names not in the item index (left out): %s"
+              % (len(unknown), ", ".join(sorted(unknown)[:40])))
+    print("boss setups: %d bosses" % len(out))
     return out
 
 
@@ -985,6 +1060,10 @@ def main():
     # every version of a kept item (a spice's other doses, a mould's other states)
     junk_keep |= {i for k in list(junk_keep) if k in wiki.id_page for i in wiki.page_ids[wiki.id_page[k]]}
 
+    slayer = slayer_tasks(res)
+    # the Boss tab: built in game from the "bosses" data for the boss the player picks
+    at = next(k for k, t in enumerate(tabs) if t["key"] == "movement") + 1
+    tabs.insert(at, {"key": "boss", "name": "Boss", "kind": "gear", "icon": 0, "sections": []})
     launcher_ammo = {}
     for name, cls in curated.LAUNCHER_AMMO.items():
         for i in res.flat([name]):
@@ -1001,7 +1080,8 @@ def main():
         "launcherAmmo": launcher_ammo,
         "ammoClasses": {cls: res.entries(names) for cls, names in curated.AMMO_CLASSES.items()},
         "tabs": tabs,
-        "slayerTasks": slayer_tasks(res),
+        "slayerTasks": slayer,
+        "bosses": bosses(wiki, res, slayer),
         # full dragonfire immunity: with one, a dragonfire shield is a choice, not a need
         "superAntifire": res.flat(["Extended super antifire", "Super antifire potion"]),
         "notFood": res.flat(curated.NOT_FOOD),

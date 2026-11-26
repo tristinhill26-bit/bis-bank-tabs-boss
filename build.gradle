@@ -14,6 +14,12 @@ repositories {
 }
 
 def runeLiteVersion = 'latest.release'
+
+// always resolve latest.release fresh: a cached "latest" can lag a game update by a day
+configurations.all {
+	resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
+	resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
 def pluginMainClass = 'com.ultimatebanktabs.UltimateBankTabsPluginTest'
 
 dependencies {
